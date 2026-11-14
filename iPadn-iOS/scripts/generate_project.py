@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from project_paths import sorted_project_paths
+
 ROOT = Path(__file__).resolve().parents[1]
 
 # `xcodebuild -exportLocalizations` refuses to run when the project's
@@ -42,7 +44,7 @@ test_id = uid("TestTarget")
 app_product = add("AppProduct", "PBXFileReference", explicitFileType="wrapper.application", includeInIndex="0", path="iPadn.app", sourceTree="BUILT_PRODUCTS_DIR")
 test_product = add("TestProduct", "PBXFileReference", explicitFileType="wrapper.cfbundle", includeInIndex="0", path="iPadnTests.xctest", sourceTree="BUILT_PRODUCTS_DIR")
 app_files, sources = [], []
-for path in sorted((ROOT / "iPadn").rglob("*.swift")):
+for path in sorted_project_paths((ROOT / "iPadn").rglob("*.swift")):
     relative = path.relative_to(ROOT / "iPadn").as_posix()
     reference = add("File/" + relative, "PBXFileReference", lastKnownFileType="sourcecode.swift", path=relative, sourceTree="<group>")
     app_files.append(reference)
@@ -79,14 +81,14 @@ resources.append(add("Build/Resources/AppShortcuts.xcstrings", "PBXBuildFile", f
 # kept for installs that chose it before the primary icon became dark.
 ALTERNATE_ICONS = ["AppIconAuto", "AppIconFlat", "AppIconLight", "AppIconDark", "AppIconFlatLight", "AppIconFlatDark"]
 # Alternate icons also ship as standalone PNGs for SpringBoard and signing tools.
-for path in sorted((ROOT / "iPadn/Resources/AlternateIcons").glob("*.png")):
+for path in sorted_project_paths((ROOT / "iPadn/Resources/AlternateIcons").glob("*.png")):
     relative = path.relative_to(ROOT / "iPadn").as_posix()
     reference = add("File/" + relative, "PBXFileReference", lastKnownFileType="image.png", path=relative, sourceTree="<group>")
     app_files.append(reference)
     resources.append(add("Build/" + relative, "PBXBuildFile", fileRef=reference))
 app_files.append(add("InfoPlist", "PBXFileReference", lastKnownFileType="text.plist.xml", path="Info.plist", sourceTree="<group>"))
 test_files, test_sources = [], []
-for path in sorted((ROOT / "iPadnTests").glob("*.swift")):
+for path in sorted_project_paths((ROOT / "iPadnTests").glob("*.swift")):
     reference = add("TestFile/" + path.name, "PBXFileReference", lastKnownFileType="sourcecode.swift", path=path.name, sourceTree="<group>")
     test_files.append(reference)
     test_sources.append(add("TestBuild/" + path.name, "PBXBuildFile", fileRef=reference))
@@ -111,7 +113,7 @@ assemble = add("AssembleWASM", "PBXShellScriptBuildPhase", buildActionMask="2147
 tests_sources = add("TestsSources", "PBXSourcesBuildPhase", buildActionMask="2147483647", files=test_sources, runOnlyForDeploymentPostprocessing="0")
 tests_frameworks = add("TestsFrameworks", "PBXFrameworksBuildPhase", buildActionMask="2147483647", files=[test_framework], runOnlyForDeploymentPostprocessing="0")
 test_resources = []
-for path in sorted((ROOT / "iPadnTests/Fixtures").glob("*.p12")):
+for path in sorted_project_paths((ROOT / "iPadnTests/Fixtures").glob("*.p12")):
     relative = path.relative_to(ROOT / "iPadnTests").as_posix()
     reference = add("TestFile/" + relative, "PBXFileReference", lastKnownFileType="file", path=relative, sourceTree="<group>")
     objects[test_group]["children"].append(reference)
@@ -124,7 +126,7 @@ base = {"IPHONEOS_DEPLOYMENT_TARGET": "16.0", "SDKROOT": "iphoneos", "SWIFT_VERS
 project_configs = configs("Project", base, {"SWIFT_COMPILATION_MODE": "wholemodule", "VALIDATE_PRODUCT": "YES"})
 app_settings = {"PRODUCT_BUNDLE_IDENTIFIER": "app.local.iPadn", "PRODUCT_NAME": "$(TARGET_NAME)", "CODE_SIGN_STYLE": "Automatic",
                 "DEVELOPMENT_TEAM": "", "TARGETED_DEVICE_FAMILY": "1,2", "INFOPLIST_FILE": "iPadn/Info.plist",
-                "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "2.1.1", "CURRENT_PROJECT_VERSION": "31",
+                "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "2.1.1", "CURRENT_PROJECT_VERSION": "39",
                 "SWIFT_EMIT_LOC_STRINGS": "YES", "LOCALIZATION_PREFERS_STRING_CATALOGS": "YES",
                 "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                 "ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS": "YES", "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
@@ -167,7 +169,7 @@ extension_id = uid("ExtensionTarget")
 extension_product = add("ExtensionProduct", "PBXFileReference", explicitFileType="wrapper.app-extension", includeInIndex="0", path="iPadnLiveActivity.appex", sourceTree="BUILT_PRODUCTS_DIR")
 objects[products]["children"].append(extension_product)
 extension_files, extension_sources = [], []
-for path in sorted((ROOT / "iPadnLiveActivity").glob("*.swift")):
+for path in sorted_project_paths((ROOT / "iPadnLiveActivity").glob("*.swift")):
     reference = add("ExtensionFile/" + path.name, "PBXFileReference", lastKnownFileType="sourcecode.swift", path=path.name, sourceTree="<group>")
     extension_files.append(reference)
     extension_sources.append(add("ExtensionBuild/" + path.name, "PBXBuildFile", fileRef=reference))
@@ -179,7 +181,7 @@ extension_resources = add("ExtensionResources", "PBXResourcesBuildPhase", buildA
                           files=[add("ExtensionBuild/Localizable.xcstrings", "PBXBuildFile", fileRef=extension_catalog)], runOnlyForDeploymentPostprocessing="0")
 objects[root_group]["children"].append(add("ExtensionGroup", "PBXGroup", children=extension_files, path="iPadnLiveActivity", sourceTree="<group>"))
 extension_phase = add("ExtensionSources", "PBXSourcesBuildPhase", buildActionMask="2147483647", files=extension_sources, runOnlyForDeploymentPostprocessing="0")
-extension_settings = {"IPHONEOS_DEPLOYMENT_TARGET": "17.0", "PRODUCT_BUNDLE_IDENTIFIER": "app.local.iPadn.LiveActivity", "PRODUCT_NAME": "$(TARGET_NAME)", "CODE_SIGN_STYLE": "Automatic",
+extension_settings = {"IPHONEOS_DEPLOYMENT_TARGET": "16.1", "PRODUCT_BUNDLE_IDENTIFIER": "app.local.iPadn.LiveActivity", "PRODUCT_NAME": "$(TARGET_NAME)", "CODE_SIGN_STYLE": "Automatic",
                       "DEVELOPMENT_TEAM": "", "TARGETED_DEVICE_FAMILY": "1,2", "INFOPLIST_FILE": "iPadnLiveActivity/Info.plist",
                       "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": app_settings["MARKETING_VERSION"],
                       "CURRENT_PROJECT_VERSION": app_settings["CURRENT_PROJECT_VERSION"], "SKIP_INSTALL": "YES",

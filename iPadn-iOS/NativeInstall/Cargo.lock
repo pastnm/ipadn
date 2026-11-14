@@ -763,10 +763,14 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "idevice",
+ "libc",
  "plist",
+ "rustls",
+ "rustls-rustcrypto",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-rustls",
 ]
 
 [[package]]

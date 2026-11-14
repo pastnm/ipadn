@@ -10,14 +10,14 @@ output="$project_root/build/native"
 target="aarch64-apple-ios"
 # Rust's standard library for this target is built for a newer iOS than the
 # app supports unless the deployment target is stated.
-export IPHONEOS_DEPLOYMENT_TARGET="17.0"
+export IPHONEOS_DEPLOYMENT_TARGET="16.0"
 # Kept out of the source tree; override to reuse a cache.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$project_root/build/native-work}"
 
 command -v cargo >/dev/null 2>&1 || { echo "cargo is required to build the native installation library." >&2; exit 1; }
 rustup target list --installed 2>/dev/null | grep -qx "$target" || rustup target add "$target"
 
-rm -rf "$output"
+rm -rf "${output:?}"
 mkdir -p "$output"
 cargo build --manifest-path "$project_root/NativeInstall/Cargo.toml" --locked --release --target "$target"
 cp "$CARGO_TARGET_DIR/$target/release/libipadn_native.a" "$output/libipadn_native.a"

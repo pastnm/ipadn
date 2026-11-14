@@ -36,7 +36,7 @@ xcodebuild -project "$project_root/iPadn.xcodeproj" -scheme iPadn -configuration
 package_root="$project_root/build/Export"
 mkdir -p "$package_root/Payload"
 if [ -d "$package_root/Payload/iPadn.app" ]; then
-  rm -r "$package_root/Payload/iPadn.app"
+  rm -r "${package_root:?}/Payload/iPadn.app"
 fi
 cp -R "$project_root/build/DerivedData/Build/Products/Release-iphoneos/iPadn.app" "$package_root/Payload/"
 if [ -n "$macpkg_flags" ]; then

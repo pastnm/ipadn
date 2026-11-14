@@ -1,8 +1,9 @@
 //! Native installation for iPadn.
 //!
 //! Talks to this device's own installation service, the one desktop tools
-//! reach over USB, through a loopback VPN and a remote pairing file. Unlike a
-//! manifest (`itms-services`) install, the system keeps the package's App
+//! reach over USB, through a loopback VPN and either an imported certificate
+//! pairing record (legacy_lockdown, iOS 16) or remote pairing file (RSD).
+//! Unlike a manifest (`itms-services`) install, the system keeps the package's App
 //! Store purchase record and replaces an App Store copy in place.
 //!
 //! On iOS 27 and later the pairing file itself can be made on the device; see
@@ -28,7 +29,17 @@ use serde::Deserialize;
 use serde_json::{Value as Json, json};
 use tokio::io::AsyncReadExt;
 
+mod legacy;
+mod legacy_heartbeat;
+#[cfg(test)]
+mod test_wire;
+mod legacy_transport;
+mod installation_query;
+mod io_diagnostics;
 mod pairing;
+
+#[cfg(test)]
+mod tests;
 
 const STAGING_DIRECTORY: &str = "PublicStaging";
 const STAGED_PACKAGE: &str = "PublicStaging/ipadn-native.ipa";
@@ -36,6 +47,8 @@ const UPLOAD_CHUNK: usize = 1024 * 1024;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(12);
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
 const LOOKUP_TIMEOUT: Duration = Duration::from_secs(30);
+const IO_TIMEOUT: Duration = Duration::from_secs(60);
+const INSTALL_TIMEOUT: Duration = Duration::from_secs(20 * 60);
 const MAX_REPLY: u32 = 64 * 1024 * 1024;
 
 pub const PHASE_CONNECT: i32 = 0;
@@ -63,13 +76,24 @@ impl Progress {
     }
 }
 
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Transport {
+    /// Existing RPPairing/RSD path remains the default for old callers.
+    #[default]
+    RemotePairing,
+    LegacyLockdown,
+}
+
 #[derive(Deserialize)]
 pub(crate) struct Request {
-    /// Path of the remote pairing (RPPairing) file.
+    #[serde(default)]
+    transport: Transport,
+    /// Imported RPPairing record, or certificate-based plist for legacy_lockdown.
     pairing_file: String,
     /// Address of this device through the loopback VPN, normally 10.7.0.1.
     host: String,
-    /// Port of `_remotepairing._tcp`, discovered by the caller.
+    /// Remote pairing service port, or exactly 62078 for legacy_lockdown.
     port: u16,
     bundle_id: String,
     #[serde(default)]
@@ -87,23 +111,107 @@ pub(crate) struct Request {
 pub(crate) struct Failure {
     stage: &'static str,
     message: String,
+    diagnostics: Vec<String>,
 }
 
 pub(crate) fn fail<E: std::fmt::Debug>(stage: &'static str) -> impl FnOnce(E) -> Failure {
-    move |error| Failure { stage, message: format!("{error:?}") }
+    move |error| failure(stage, format!("{error:?}"))
 }
 
 pub(crate) fn failure(stage: &'static str, message: impl Into<String>) -> Failure {
-    Failure { stage, message: message.into() }
+    Failure { stage, message: message.into(), diagnostics: Vec::new() }
 }
 
-struct Session {
+struct RemoteSession {
     adapter: AdapterHandle,
     handshake: RsdHandshake,
 }
 
+/// A legacy lockdown socket is never used as an RSD tunnel, or vice versa.
+enum Session {
+    Remote(RemoteSession),
+    Legacy(legacy::LegacySession),
+}
+
+impl installation_query::Service for Session {
+    async fn open(&mut self) -> Result<InstallationProxyClient, Failure> {
+        self.installation_proxy().await
+    }
+    fn record(&self, entry: String) { self.record_query(entry); }
+    fn allows_legacy_retry(&self) -> bool { matches!(self, Self::Legacy(_)) }
+    async fn guard<T>(&self, work: impl std::future::Future<Output = Result<T, Failure>>) -> Result<T, Failure> {
+        self.guard(work).await
+    }
+}
+
+impl Session {
+    async fn guard<T>(&self, work: impl std::future::Future<Output = Result<T, Failure>>) -> Result<T, Failure> {
+        match self {
+            Self::Legacy(session) => session.guard(work).await,
+            Self::Remote(_) => work.await,
+        }
+    }
+
+    fn finish(&self, result: Result<Json, Failure>) -> Result<Json, Failure> {
+        let Self::Legacy(session) = self else { return result };
+        let diagnostics = session.diagnostics();
+        match result {
+            Ok(mut reply) => {
+                reply["connection_diagnostics"] = json!(diagnostics);
+                Ok(reply)
+            }
+            Err(mut error) => {
+                error.diagnostics.extend(diagnostics);
+                Err(error)
+            }
+        }
+    }
+
+    async fn installation_proxy(&mut self) -> Result<InstallationProxyClient, Failure> {
+        match self {
+            Self::Remote(s) => InstallationProxyClient::connect_rsd(&mut s.adapter, &mut s.handshake)
+                .await.map_err(fail("installation_proxy")),
+            Self::Legacy(s) => s.service::<InstallationProxyClient>().await,
+        }
+    }
+
+    async fn afc(&mut self) -> Result<AfcClient, Failure> {
+        match self {
+            Self::Remote(s) => AfcClient::connect_rsd(&mut s.adapter, &mut s.handshake)
+                .await.map_err(fail("afc")),
+            Self::Legacy(s) => s.service::<AfcClient>().await,
+        }
+    }
+
+    fn service_error(&self, stage: &'static str, error: IdeviceError) -> Failure {
+        match self {
+            Self::Legacy(_) => legacy::safe_error(stage, error),
+            Self::Remote(_) => fail(stage)(error),
+        }
+    }
+
+    fn record_query(&self, entry: String) {
+        if let Self::Legacy(session) = self { session.record_query(entry); }
+    }
+
+    async fn close(&mut self) {
+        if let Self::Legacy(s) = self { s.close().await; }
+    }
+}
+
 async fn connect(request: &Request) -> Result<Session, Failure> {
-    let ip: IpAddr = request.host.parse().map_err(fail("request"))?;
+    let ip: IpAddr = request.host.parse()
+        .map_err(|_| failure("request", "host must be a numeric IP address"))?;
+    if request.pairing_file.trim().is_empty() || request.port == 0 {
+        return Err(failure("request", "missing pairing file or service port"));
+    }
+    match request.transport {
+        Transport::RemotePairing => connect_remote(request, ip).await.map(Session::Remote),
+        Transport::LegacyLockdown => legacy::LegacySession::connect(request, ip).await.map(Session::Legacy),
+    }
+}
+
+async fn connect_remote(request: &Request, ip: IpAddr) -> Result<RemoteSession, Failure> {
     let address = SocketAddr::new(ip, request.port);
     let mut pairing = RpPairingFile::read_from_file(&request.pairing_file)
         .await
@@ -135,7 +243,7 @@ async fn connect(request: &Request) -> Result<Session, Failure> {
 async fn open_tunnel(
     client: &mut RemotePairingClient<RpPairingSocket<tokio::net::TcpStream>>,
     mut address: SocketAddr,
-) -> Result<Session, IdeviceError> {
+) -> Result<RemoteSession, IdeviceError> {
     address.set_port(client.create_tcp_listener().await?);
     let stream = tokio::net::TcpStream::connect(address).await?;
     let tunnel = connect_tls_psk_tunnel_native(stream, client.encryption_key()).await?;
@@ -152,34 +260,10 @@ async fn open_tunnel(
     adapter.set_mss(mtu.clamp(576, 8192) - 60);
     let mut adapter = adapter.to_async_handle();
     let handshake = RsdHandshake::new(adapter.connect(rsd_port).await?).await?;
-    Ok(Session { adapter, handshake })
+    Ok(RemoteSession { adapter, handshake })
 }
 
-/// installation_proxy frames each plist with a big-endian length. The crate
-/// keeps its plist helpers private and its lookup cannot ask for attributes.
-async fn exchange(
-    client: &mut InstallationProxyClient,
-    message: &plist::Value,
-) -> Result<plist::Dictionary, IdeviceError> {
-    let mut body = Vec::new();
-    plist::to_writer_xml(&mut body, message)
-        .map_err(|error| IdeviceError::InternalError(error.to_string()))?;
-    let mut frame = (body.len() as u32).to_be_bytes().to_vec();
-    frame.extend(body);
-    client.idevice.send_raw(&frame).await?;
-
-    let header = client.idevice.read_raw(4).await?;
-    let length = u32::from_be_bytes([header[0], header[1], header[2], header[3]]);
-    if length > MAX_REPLY {
-        return Err(IdeviceError::UnexpectedResponse("oversized reply".into()));
-    }
-    let reply = client.idevice.read_raw(length as usize).await?;
-    plist::from_bytes(&reply).map_err(|error| IdeviceError::UnexpectedResponse(error.to_string()))
-}
-
-async fn lookup(session: &mut Session, bundle_id: &str) -> Result<Json, IdeviceError> {
-    let mut client =
-        InstallationProxyClient::connect_rsd(&mut session.adapter, &mut session.handshake).await?;
+async fn lookup(session: &mut Session, bundle_id: &str) -> Result<Json, Failure> {
     let attributes = [
         "CFBundleIdentifier",
         "CFBundleShortVersionString",
@@ -199,14 +283,7 @@ async fn lookup(session: &mut Session, bundle_id: &str) -> Result<Json, IdeviceE
     message.insert("Command".into(), "Lookup".into());
     message.insert("ClientOptions".into(), plist::Value::Dictionary(options));
 
-    let mut reply = exchange(&mut client, &plist::Value::Dictionary(message)).await?;
-    if let Some(error) = reply.get("Error").and_then(|value| value.as_string()) {
-        return Err(IdeviceError::UnexpectedResponse(error.to_string()));
-    }
-    // An unreadable inventory must never be reported as "not installed".
-    let Some(plist::Value::Dictionary(mut result)) = reply.remove("LookupResult") else {
-        return Err(IdeviceError::UnexpectedResponse("missing LookupResult".into()));
-    };
+    let mut result = installation_query::run_with_retry(session, &plist::Value::Dictionary(message)).await?;
     let Some(plist::Value::Dictionary(app)) = result.remove(bundle_id) else {
         return Ok(json!({ "installed": false }));
     };
@@ -247,9 +324,7 @@ fn describe(app: &plist::Dictionary) -> Json {
 }
 
 /// Every app the user installed, with the same details as `lookup`.
-async fn list(session: &mut Session) -> Result<Json, IdeviceError> {
-    let mut client =
-        InstallationProxyClient::connect_rsd(&mut session.adapter, &mut session.handshake).await?;
+async fn list(session: &mut Session) -> Result<Json, Failure> {
     let attributes = [
         "CFBundleIdentifier",
         "CFBundleDisplayName",
@@ -270,13 +345,8 @@ async fn list(session: &mut Session) -> Result<Json, IdeviceError> {
     message.insert("Command".into(), "Lookup".into());
     message.insert("ClientOptions".into(), plist::Value::Dictionary(options));
 
-    let mut reply = exchange(&mut client, &plist::Value::Dictionary(message)).await?;
-    if let Some(error) = reply.get("Error").and_then(|value| value.as_string()) {
-        return Err(IdeviceError::UnexpectedResponse(error.to_string()));
-    }
-    let Some(plist::Value::Dictionary(result)) = reply.remove("LookupResult") else {
-        return Err(IdeviceError::UnexpectedResponse("missing LookupResult".into()));
-    };
+    let result = installation_query::run_with_retry(session, &plist::Value::Dictionary(message))
+        .await.map_err(|mut e| { if e.stage == "lookup" { e.stage = "list"; } e })?;
     let apps: Vec<Json> = result
         .iter()
         .filter_map(|(bundle_id, value)| {
@@ -291,22 +361,35 @@ async fn list(session: &mut Session) -> Result<Json, IdeviceError> {
     Ok(json!(apps))
 }
 
+async fn checked_io<T>(
+    session: &Session,
+    stage: &'static str,
+    work: impl std::future::Future<Output = Result<T, IdeviceError>>,
+) -> Result<T, Failure> {
+    session.guard(async { tokio::time::timeout(IO_TIMEOUT, work).await
+        .map_err(|_| failure(stage, "timed out"))?
+        .map_err(|e| session.service_error(stage, e))
+    }).await
+}
+
 async fn upload(session: &mut Session, path: &str, progress: Progress) -> Result<(), Failure> {
     let mut file = tokio::fs::File::open(path).await.map_err(fail("package"))?;
     let total = file.metadata().await.map_err(fail("package"))?.len();
-    let mut afc = AfcClient::connect_rsd(&mut session.adapter, &mut session.handshake)
-        .await
-        .map_err(fail("upload"))?;
-    if afc.get_file_info(STAGING_DIRECTORY).await.is_err() {
-        afc.mk_dir(STAGING_DIRECTORY).await.map_err(fail("upload"))?;
+    let mut afc = session.afc().await?;
+    let info = session.guard(async {
+        tokio::time::timeout(IO_TIMEOUT, afc.get_file_info(STAGING_DIRECTORY)).await
+            .map_err(|_| failure("upload", "timed out"))
+    }).await?;
+    if info.is_err() {
+        checked_io(session, "upload", afc.mk_dir(STAGING_DIRECTORY)).await?;
     }
 
     let mut buffer = vec![0u8; UPLOAD_CHUNK];
     let mut sent = 0u64;
     progress.report(PHASE_UPLOAD, 0, total);
     let (outcome, closed) = {
-        let mut descriptor =
-            afc.open(STAGED_PACKAGE, AfcFopenMode::WrOnly).await.map_err(fail("upload"))?;
+        let mut descriptor = checked_io(session, "upload",
+            afc.open(STAGED_PACKAGE, AfcFopenMode::WrOnly)).await?;
         // Streamed in chunks: reading a whole package into memory gets a phone
         // app killed for packages of a few hundred megabytes.
         let outcome: Result<(), Failure> = loop {
@@ -318,18 +401,18 @@ async fn upload(session: &mut Session, path: &str, progress: Progress) -> Result
                 Ok(read) => read,
                 Err(error) => break Err(fail("package")(error)),
             };
-            if let Err(error) = descriptor.write_entire(&buffer[..read]).await {
-                break Err(fail("upload")(error));
+            if let Err(error) = checked_io(session, "upload", descriptor.write_entire(&buffer[..read])).await {
+                break Err(error);
             }
             sent += read as u64;
             progress.report(PHASE_UPLOAD, sent, total);
         };
         // Close even after a failed write, or the device-side descriptor leaks.
-        (outcome, descriptor.close().await.map_err(fail("upload")))
+        (outcome, checked_io(session, "upload", descriptor.close()).await)
     };
     let complete = outcome.is_ok() && closed.is_ok() && sent == total;
     if !complete {
-        let _ = afc.remove(STAGED_PACKAGE).await;
+        let _ = checked_io(session, "upload", afc.remove(STAGED_PACKAGE)).await;
     }
     outcome?;
     closed?;
@@ -340,36 +423,64 @@ async fn upload(session: &mut Session, path: &str, progress: Progress) -> Result
 }
 
 async fn remove_staged(session: &mut Session) {
-    if let Ok(mut afc) = AfcClient::connect_rsd(&mut session.adapter, &mut session.handshake).await
-    {
-        let _ = afc.remove(STAGED_PACKAGE).await;
-    }
+    let _ = tokio::time::timeout(LOOKUP_TIMEOUT, async {
+        if let Ok(mut afc) = session.afc().await {
+            let _ = checked_io(session, "upload", afc.remove(STAGED_PACKAGE)).await;
+        }
+    }).await;
 }
 
 async fn checked_lookup(session: &mut Session, bundle_id: &str) -> Result<Json, Failure> {
     tokio::time::timeout(LOOKUP_TIMEOUT, lookup(session, bundle_id))
         .await
         .map_err(|_| failure("lookup", "timed out"))?
-        .map_err(fail("lookup"))
 }
 
 async fn checked_list(session: &mut Session) -> Result<Json, Failure> {
     tokio::time::timeout(LOOKUP_TIMEOUT, list(session))
         .await
         .map_err(|_| failure("list", "timed out"))?
-        .map_err(fail("list"))
 }
 
 async fn install(request: &Request, progress: Progress) -> Result<Json, Failure> {
-    let package = request.ipa.as_deref().ok_or_else(|| failure("request", "missing ipa"))?;
+    let package = request.ipa.as_deref().filter(|s| !s.is_empty())
+        .ok_or_else(|| failure("request", "missing ipa"))?;
+    if request.bundle_id.trim().is_empty() {
+        return Err(failure("request", "missing bundle_id"));
+    }
+    // Reject malformed metadata before uploading, not after modifying staging.
+    let metadata = decode_metadata(request.metadata.as_deref())?;
     progress.report(PHASE_CONNECT, 0, 1);
     let mut session = connect(request).await?;
-    let before = checked_lookup(&mut session, &request.bundle_id).await?;
+    let outcome = install_in_session(request, package, metadata, progress, &mut session).await;
+    session.close().await;
+    session.finish(outcome)
+}
+
+fn decode_metadata(encoded: Option<&str>) -> Result<Option<Vec<u8>>, Failure> {
+    use base64::Engine;
+    encoded.map(|text| {
+        let bytes = base64::engine::general_purpose::STANDARD.decode(text)
+            .map_err(|_| failure("request", "metadata is not valid base64"))?;
+        plist::from_bytes::<plist::Dictionary>(&bytes)
+            .map_err(|_| failure("request", "metadata must be a plist dictionary"))?;
+        Ok(bytes)
+    }).transpose()
+}
+
+async fn install_in_session(
+    request: &Request,
+    package: &str,
+    metadata: Option<Vec<u8>>,
+    progress: Progress,
+    session: &mut Session,
+) -> Result<Json, Failure> {
+    let before = checked_lookup(session, &request.bundle_id).await?;
     progress.report(PHASE_CONNECT, 1, 1);
 
-    upload(&mut session, package, progress).await?;
+    upload(session, package, progress).await?;
     if CANCELLED.load(Ordering::SeqCst) {
-        remove_staged(&mut session).await;
+        remove_staged(session).await;
         return Err(failure("cancelled", "cancelled"));
     }
 
@@ -378,34 +489,85 @@ async fn install(request: &Request, progress: Progress) -> Result<Json, Failure>
     let upgrade = before["installed"] == json!(true);
     let mut options = plist::Dictionary::new();
     options.insert("CFBundleIdentifier".into(), request.bundle_id.clone().into());
-    if let Some(encoded) = request.metadata.as_deref() {
-        use base64::Engine;
-        let record = base64::engine::general_purpose::STANDARD
-            .decode(encoded)
-            .map_err(fail("request"))?;
-        options.insert("iTunesMetadata".into(), plist::Value::Data(record));
+    if let Some(record) = &metadata {
+        options.insert("iTunesMetadata".into(), plist::Value::Data(record.clone()));
     }
     let options = Some(plist::Value::Dictionary(options));
-    let mut client =
-        InstallationProxyClient::connect_rsd(&mut session.adapter, &mut session.handshake)
-            .await
-            .map_err(fail("install"))?;
+    let mut client = match session.installation_proxy().await {
+        Ok(client) => client,
+        Err(error) => {
+            remove_staged(session).await;
+            return Err(error);
+        }
+    };
+    if CANCELLED.load(Ordering::SeqCst) {
+        drop(client);
+        remove_staged(session).await;
+        return Err(failure("cancelled", "cancelled"));
+    }
     progress.report(PHASE_INSTALL, 0, 100);
     let report = |(percent, progress): (u64, Progress)| async move {
         progress.report(PHASE_INSTALL, percent.min(100), 100);
     };
-    let result = if upgrade {
-        client.upgrade_with_callback(STAGED_PACKAGE, options, report, progress).await
-    } else {
-        client.install_with_callback(STAGED_PACKAGE, options, report, progress).await
-    };
+    // Timing out stops waiting, not the system's in-progress install. The
+    // caller must check inventory before retrying after this ambiguous result.
+    // Heartbeat loss makes completion unknown too. Keep the staged input and
+    // never replay Install/Upgrade automatically after this ambiguous outcome.
+    let result = session.guard(async { Ok(tokio::time::timeout(INSTALL_TIMEOUT, async {
+        if upgrade {
+            client.upgrade_with_callback(STAGED_PACKAGE, options, report, progress).await
+        } else {
+            client.install_with_callback(STAGED_PACKAGE, options, report, progress).await
+        }
+    }).await) }).await?;
+    drop(client);
+    // Keep the staged package if completion is unknown: the system may still
+    // be reading it. Do not delete an install's input just because we timed out.
+    let result = result.map_err(|_| failure("install",
+        "timed out waiting for installation; the system may still finish; check inventory before retrying"))?;
+    remove_staged(session).await;
     if let Err(error) = result {
-        remove_staged(&mut session).await;
-        return Err(fail("install")(error));
+        return Err(session.service_error("install", error));
     }
 
-    let after = checked_lookup(&mut session, &request.bundle_id).await.ok();
+    // InstallationProxy's Complete alone is not evidence that the app or its
+    // purchase metadata survived. Never silently convert failed lookup to null.
+    let after = checked_lookup(session, &request.bundle_id).await
+        .map_err(|_| failure("verify", "install completed but post-install lookup failed; check inventory before retrying"))?;
+    verify_installation(&request.bundle_id, &before, &after, metadata.as_deref())?;
     Ok(json!({ "ok": true, "upgraded": upgrade, "before": before, "after": after }))
+}
+
+fn verify_installation(bundle_id: &str, before: &Json, after: &Json, metadata: Option<&[u8]>) -> Result<(), Failure> {
+    let unverified = || failure("verify", "install completed but application or purchase metadata could not be verified; check inventory before retrying");
+    if after["installed"] != json!(true) || after["bundle_id"].as_str() != Some(bundle_id)
+        || after["placeholder"] == json!(true)
+    {
+        return Err(unverified());
+    }
+    if let Some(bytes) = metadata {
+        let expected: plist::Dictionary = plist::from_bytes(bytes).map_err(|_| unverified())?;
+        let mut app = plist::Dictionary::new();
+        app.insert("iTunesMetadata".into(), plist::Value::Dictionary(expected.clone()));
+        let described = describe(&app);
+        for field in ["store_item_id", "store_version_id"] {
+            if !described[field].is_null() && after[field] != described[field] {
+                return Err(unverified());
+            }
+        }
+        if expected.contains_key("com.apple.iTunesStore.downloadInfo")
+            && after["has_purchase_record"] != json!(true)
+        {
+            return Err(unverified());
+        }
+    } else if before["has_purchase_record"] == json!(true) {
+        if after["has_purchase_record"] != json!(true)
+            || (!before["store_item_id"].is_null() && before["store_item_id"] != after["store_item_id"])
+        {
+            return Err(unverified());
+        }
+    }
+    Ok(())
 }
 
 fn run<R, F, Fut>(request: *const c_char, work: F) -> *mut c_char
@@ -419,7 +581,8 @@ where
             return Err(failure("request", "null request"));
         }
         let text = unsafe { CStr::from_ptr(request) }.to_str().map_err(fail("request"))?;
-        let request: R = serde_json::from_str(text).map_err(fail("request"))?;
+        let request: R = serde_json::from_str(text)
+            .map_err(|_| failure("request", "invalid request JSON or fields"))?;
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
@@ -431,7 +594,8 @@ where
         reply
     })();
     let reply = reply.unwrap_or_else(|failure| {
-        json!({ "ok": false, "stage": failure.stage, "message": failure.message })
+        json!({ "ok": false, "stage": failure.stage, "message": failure.message,
+                "connection_diagnostics": failure.diagnostics })
     });
     CString::new(reply.to_string())
         .unwrap_or_else(|_| {
@@ -464,8 +628,9 @@ pub unsafe extern "C" fn iPadnNativeInstall(
 pub unsafe extern "C" fn iPadnNativeLookup(request: *const c_char) -> *mut c_char {
     run(request, |request: Request| async move {
         let mut session = connect(&request).await?;
-        let app = checked_lookup(&mut session, &request.bundle_id).await?;
-        Ok(json!({ "ok": true, "app": app }))
+        let app = checked_lookup(&mut session, &request.bundle_id).await;
+        session.close().await;
+        session.finish(app.map(|app| json!({ "ok": true, "app": app })))
     })
 }
 
@@ -477,8 +642,9 @@ pub unsafe extern "C" fn iPadnNativeLookup(request: *const c_char) -> *mut c_cha
 pub unsafe extern "C" fn iPadnNativeList(request: *const c_char) -> *mut c_char {
     run(request, |request: Request| async move {
         let mut session = connect(&request).await?;
-        let apps = checked_list(&mut session).await?;
-        Ok(json!({ "ok": true, "apps": apps }))
+        let apps = checked_list(&mut session).await;
+        session.close().await;
+        session.finish(apps.map(|apps| json!({ "ok": true, "apps": apps })))
     })
 }
 

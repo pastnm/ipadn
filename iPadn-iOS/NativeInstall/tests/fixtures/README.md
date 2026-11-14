@@ -1,0 +1,1 @@
+Synthetic localhost TLS test identities, generated with OpenSSL. No device or user credentials. Keys are public test fixtures. Included only under cfg(test), never in the iOS library or IPA. Certificates expire in 2036.

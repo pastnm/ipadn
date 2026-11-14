@@ -28,11 +28,8 @@ struct InstalledAppsView: View {
     @State private var term = ""
     @State private var updating = false
 
-    /// The system can list apps for iPadn from iOS 17.4, like native installation.
-    nonisolated static var isSupported: Bool {
-        NativeInstaller.listingIsAvailable
-            && ProcessInfo.processInfo.isOperatingSystemAtLeast(OperatingSystemVersion(majorVersion: 17, minorVersion: 4, patchVersion: 0))
-    }
+    /// Both lockdown and RPPairing can list apps through installation_proxy.
+    nonisolated static var isSupported: Bool { NativeInstaller.listingIsAvailable }
 
     enum Group: CaseIterable {
         case update, link, store, other

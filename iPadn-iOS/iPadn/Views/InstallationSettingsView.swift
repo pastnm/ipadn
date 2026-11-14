@@ -75,6 +75,8 @@ struct InstallationSettingsView: View {
                 } header: { Text("原生安装") } footer: {
                     if OnDevicePairing.isSupported {
                         Text("通过系统自带的安装服务安装，效果与用电脑安装相同。\n1. 点按「在本机配对」，然后打开「设置 › 隐私与安全性 › 开发者模式」，点按「与 iPadn 配对」，输入 iPadn 显示的配对码。看不到开发者模式时，需要先在该页面开启并重启设备。\n2. 安装前打开 LocalDevVPN 并点按连接，或使用已配置好环回路由的代理工具。\n修改锁屏密码、系统还原后需要重新配对。安装包不会离开这台设备。")
+                    } else if !NativeInstaller.supportsRemotePairing {
+                        Text("通过系统自带的安装服务安装，不使用网页安装。iOS 16 至 17.3 需要传统 lockdown 配对：\n1. 在电脑上连接并信任这台设备，导出包含证书的传统配对文件（不是 RPPairing 文件），然后点按「导入配对文件」。配对文件含私钥，请勿上传或分享。\n2. 安装前连接能将 10.7.0.1 路由到本机、允许访问 lockdown 62078 端口的环回 VPN。可使用 LocalDevVPN；检查连接未成功前不要开始安装。\n修改信任关系、系统还原后可能需要重新导出。安装包不会离开这台设备。")
                     } else {
                         Text("通过系统自带的安装服务安装，效果与用电脑安装相同。需要两样东西：\n1. 从 App Store 安装 LocalDevVPN，安装前在其中点按连接。它与其他代理或 VPN 不能同时开启。\n2. 在电脑上用 idevice_pair 为这台设备生成「远程配对（RPPairing）」文件，放进「文件 › 我的 iPhone › iPadn」后点按「导入配对文件」，也可以从其他位置选取。系统更新或还原后可能需要重新生成。\n安装包不会离开这台设备。")
                     }

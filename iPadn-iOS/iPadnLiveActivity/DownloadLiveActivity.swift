@@ -2,6 +2,14 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
+private extension ActivityViewContext {
+    /// Staleness reporting was added after the extension's iOS 16.1 minimum.
+    var compatibleIsStale: Bool {
+        if #available(iOSApplicationExtension 16.2, *) { return isStale }
+        return false
+    }
+}
+
 private extension DownloadActivityAttributes.ContentState {
     var title: String {
         switch phase {
@@ -119,7 +127,7 @@ struct DownloadLiveActivity: Widget {
                 HStack(spacing: 10) {
                     AppMarkView(size: 38)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(context.isStale && !state.ended ? String(localized: "已暂停更新") : state.title).font(.subheadline).foregroundStyle(.secondary)
+                        Text(context.compatibleIsStale && !state.ended ? String(localized: "已暂停更新") : state.title).font(.subheadline).foregroundStyle(.secondary)
                         Text(state.name).font(.headline).lineLimit(1)
                     }
                     Spacer(minLength: 8)
@@ -147,7 +155,7 @@ struct DownloadLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.center) {
                     VStack(spacing: 1) {
-                        Text(context.isStale && !state.ended ? String(localized: "已暂停更新") : state.title).font(.caption).foregroundStyle(.secondary)
+                        Text(context.compatibleIsStale && !state.ended ? String(localized: "已暂停更新") : state.title).font(.caption).foregroundStyle(.secondary)
                         Text(state.name).font(.headline).lineLimit(1)
                     }
                 }

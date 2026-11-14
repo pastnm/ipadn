@@ -15,6 +15,7 @@ idevice = { version = "=0.1.68", default-features = false, features = [
   "rustcrypto",
   "afc",
   "installation_proxy",
+  "heartbeat",
   "remote_pairing",
   "rsd",
   "tcp",
@@ -24,7 +25,17 @@ tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "fs", "io
 base64 = "0.22"
 plist = "1.8"
 serde = { version = "1", features = ["derive"] }
+# Preflight the exact TLS credentials before idevice's sni.rs unwraps its
+# client-auth builder. These are already transitive dependencies in Cargo.lock.
+rustls = { version = "=0.23.46", default-features = false, features = ["std", "tls12"] }
+rustls-rustcrypto = "=0.0.2-alpha"
 serde_json = "1"
+# Already pinned transitively; needed for Darwin IP_BOUND_IF and getifaddrs.
+libc = "=0.2.191"
+
+[dev-dependencies]
+# Already pinned transitively; host tests exercise the existing RustCrypto TLS.
+tokio-rustls = { version = "=0.26.6", default-features = false, features = ["tls12"] }
 
 [profile.release]
 opt-level = "s"
