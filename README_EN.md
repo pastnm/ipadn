@@ -2,21 +2,25 @@
 
 <img src="docs/images/icon.png" width="120" alt="iPadn">
 
-# iPadn
+# iPadn · iOS 16 VPN compatibility fork
 
 **Search, download and install the apps you own, on iPhone and iPad.**
 Works with iPhone, iPad, Apple TV and Mac apps, including older versions and apps removed from sale.
 
-[![Latest release](https://img.shields.io/github/v/release/mengangs/ipadn?label=latest&color=111111)](https://github.com/mengangs/ipadn/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/mengangs/ipadn/total?label=downloads&color=111111)](https://github.com/mengangs/ipadn/releases)
+[![Latest release](https://img.shields.io/github/v/release/pastnm/ipadn?label=latest&color=111111)](https://github.com/pastnm/ipadn/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/pastnm/ipadn/total?label=downloads&color=111111)](https://github.com/pastnm/ipadn/releases)
 ![Requires](https://img.shields.io/badge/iOS%20%2F%20iPadOS-16%2B-111111)
-[![License](https://img.shields.io/github/license/mengangs/ipadn?label=license&color=111111)](LICENSE)
+[![License](https://img.shields.io/github/license/pastnm/ipadn?label=license&color=111111)](LICENSE)
 
 [简体中文](README.md) · **English**
 
-[Download](https://github.com/mengangs/ipadn/releases/latest) · [Install a download](#installing-a-downloaded-app) · [FAQ](#frequently-asked-questions) · [Report a problem](https://github.com/mengangs/ipadn/issues) · [Support iPadn](#support-ipadn)
+[Download](https://github.com/pastnm/ipadn/releases/latest) · [Install a download](#installing-a-downloaded-app) · [FAQ](#frequently-asked-questions) · [Report a problem](https://github.com/pastnm/ipadn/issues) · [Support iPadn](#support-ipadn)
 
 </div>
+
+Maintained by [pastnm](https://github.com/pastnm), based on [mengangs/ipadn](https://github.com/mengangs/ipadn). The current release is **2.1.1 B39**, retaining B38 traditional pairing, LocalDevVPN / Loon loopback support and the full app. Upstream authorship, screenshots and component licenses are preserved.
+
+> **Download this fork:** [B39 full IPA and source](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39). B39's in-app update check still reads upstream releases. Update this fork through this repository's Releases or the signing-tool source below to keep its compatibility changes.
 
 <p align="center">
   <img src="docs/images/en/01-search.jpg" width="24%" alt="Search">
@@ -34,11 +38,15 @@ Works with iPhone, iPad, Apple TV and Mac apps, including older versions and app
 
 ---
 
-## What’s new in 2.1.1
+## What’s new in 2.1.1 B39
 
-- **Fix an Installation settings crash on iOS 16**: encode the installation-help URL correctly and safely handle invalid App Store links.
-- **Improve date-range filter layout**: group start/end dates, query actions and progress in one panel, align controls and adapt to accessibility text sizes.
-- Standard and lite packages remain available for iOS / iPadOS 16 and later. See the [release notes](RELEASE_NOTES.md).
+- Sync upstream **2.1.1**: the Installation settings crash fix, safe App Store links and improved date-range filter layout.
+- Retain **B38's connection implementation**: traditional lockdown pairing, LocalDevVPN / Loon loopback compatibility, and interface-bound heartbeat and dynamic installation services.
+- **iOS 16 through 17.3 can use traditional pairing files.** Existing valid files remain usable. Upstream's “old format” message does not mean the file has expired or needs conversion to RPPairing.
+- This fork currently publishes the **unsigned full package** with native install, Mac PKG, widgets and Live Activities. No lite package is published here. The app requires iOS 16.0, the extension requires iOS 16.1, and conventional signing needs two App IDs.
+- Full Release compilation, IPA checks, 55 Rust host tests, 31 Python tests and four macOS pairing/help-link tests passed. iOS test targets compiled; B39 device connections, actual installation and data preservation still require device validation.
+
+See [B39 changes and pairing formats](docs/local-v2.1.1-b39-upstream.md) and the [release verification report](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39).
 
 ## 2.1.0 highlights
 
@@ -46,7 +54,7 @@ Works with iPhone, iPad, Apple TV and Mac apps, including older versions and app
 - **Find versions by date**: select inclusive start/end dates, with progress, cancellation and explicit unknown-date counts. Histories load in batches, with on-demand icons and a bounded decoded-image cache. Package dates can differ from store release dates.
 - **More complete download controls**: swipe to delete/share, outside-tap dismissal, a five-second Undo countdown, completion transitions, and sequential automatic installation with the native method.
 - **Inspectable installed apps**: view local version and Bundle ID even without store details, distinguish missing regional listings from lookup failures, and retry store details independently.
-- Fixes clipped swipe edges, slow closing animations after dropped frames, duplicate installation queuing and wrapped search-chip corners. Both standard and lite packages remain available. See the [release notes](RELEASE_NOTES.md).
+- Fixes clipped swipe edges, slow closing animations after dropped frames, duplicate installation queuing and wrapped search-chip corners. This fork retains these upstream features and currently publishes the full package only.
 
 ## What it does
 
@@ -57,7 +65,7 @@ Works with iPhone, iPad, Apple TV and Mac apps, including older versions and app
 | 🕘 **Older versions** | See each version's number, date, IPA package size, version-specific icon and release notes and download older versions, or enter a version ID directly. Long-press a row to copy its version number or ID; accessibility text sizes use a vertical layout. Unavailable sizes show “—”, never the latest version's size. Primary icon PNGs are read on demand from each version's IPA and cached separately. Unavailable icons use a placeholder, never current store artwork; asset-catalog-only icons are not yet supported. Downloaded apps can “Keep this version” to stop update reminders. |
 | ⬇️ **Downloads** | Background downloads you can pause, resume and retry, with live speed and time remaining, also on the Lock Screen and in the Dynamic Island. Download over Wi‑Fi only and install automatically when a download finishes if you like. Swipe cards to delete or share; tap elsewhere to close the actions. Exported filenames include the app name and version. Deletion offers a five-second Undo countdown, and completion changes the progress ring to a checkmark and Install. Long-press uses the system menu; tap the selected tab again to scroll to the top. Task details show the permissions, extensions and languages a package declares. |
 | 🔔 **Update alerts** | Downloaded apps with a newer version are marked in the list, and background checks send a notification. |
-| ⬆️ **iPadn updates** | New iPadn releases appear in Settings with a notification; read what's new, download the new package and hand it to your signing tool. |
+| ⬆️ **iPadn updates** | B39's built-in check still reads upstream. Update this compatibility fork through this repository's Releases or its signing-tool source below. |
 | 👀 **Follow apps** | Get notified about new versions, price drops, free promotions or removals, with a price history. |
 | 🌏 **Regional prices** | Compare app and in-app purchase prices (including subscriptions) across regions, converted to your chosen currency and sorted from lowest. You pick the regions. |
 | 📲 **One-tap install** | Tap “Install” when a download finishes. No profile or certificate needed, with live progress. |
@@ -75,13 +83,13 @@ Works with iPhone, iPad, Apple TV and Mac apps, including older versions and app
 
 The interface follows the App Store's design. Appearance follows the system and the icon is dark by default (both can be changed in Settings), with Dynamic Type, the iPad sidebar and alternate app icons.
 
-**Languages:** English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Russian, Spanish, French, German, Portuguese (Brazil) and Arabic, with a right-to-left layout for Arabic. iPadn follows the system language; to choose a different one for iPadn only, use Settings › iPadn › Language. English was refined by a community contributor and the other languages are machine-assisted translations; corrections are welcome in [Issues](https://github.com/mengangs/ipadn/issues) or a pull request.
+**Languages:** English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Russian, Spanish, French, German, Portuguese (Brazil) and Arabic, with a right-to-left layout for Arabic. iPadn follows the system language; to choose a different one for iPadn only, use Settings › iPadn › Language. English was refined by a community contributor and the other languages are machine-assisted translations; corrections are welcome in [Issues](https://github.com/pastnm/ipadn/issues) or a pull request.
 
 ## Getting started
 
 > Requires **iOS / iPadOS 16** or later.
 
-1. Download the latest `iPadn-<version>-unsigned.ipa` from [Releases](https://github.com/mengangs/ipadn/releases/latest). If your signing tool or free account has few App IDs left, use the lite package `iPadn-<version>-lite-unsigned.ipa` instead: it needs one App ID but has no Dynamic Island progress or widgets.
+1. Download `iPadn-2.1.1-b39-iOS16-20261114-185014-unsigned.ipa` from the [B39 release](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39). It is the full package with widgets and Live Activities; conventional signing needs two App IDs. This fork currently has no lite package.
 2. Sign it with your usual signing tool and install it on your device.
 3. Open iPadn and sign in to your Apple Account under Account. If two-factor authentication is on, enter the 6-digit code shown on your trusted device.
 
@@ -92,10 +100,10 @@ The interface follows the App Store's design. Appearance follows the system and 
 SideStore, AltStore, Feather and other tools that support AltStore sources can add the address below. You can then install iPadn from the tool and update it there when a new version is out, without downloading the package by hand.
 
 ```
-https://raw.githubusercontent.com/mengangs/ipadn/main/altstore-source.json
+https://raw.githubusercontent.com/pastnm/ipadn/main/altstore-source.json
 ```
 
-The source is updated automatically after every release and only lists packages from this repository's Releases.
+This source only lists published packages from `pastnm/ipadn`, currently version 2.1.1 (build 39), and excludes upstream packages. After publishing a new release, run `python3 iPadn-iOS/scripts/generate_altstore_source.py` to refresh it; automatic refresh after publication is not configured. The app bundle identifier stays `app.local.iPadn`.
 
 ## Downloading an app
 
@@ -117,14 +125,14 @@ The source is updated automatically after every release and only lists packages 
 
 For a manual install, tap “Install” on the download card and follow the selected method. Web installation methods require confirmation in the system prompt; keep iPadn open until they finish.
 
-With “Install When Downloaded” enabled and Native install selected, completed downloads install sequentially without another confirmation. Pair beforehand and keep LocalDevVPN connected. Silent audio keeps the app running from downloading through installation; Lock Screen and Dynamic Island activities can show downloading, processing and installation states (standard package, with Live Activities enabled). iOS still controls background execution, so work cannot be guaranteed after the system terminates the app; reopening iPadn resumes pending work. Other methods still need iPadn in the foreground and their installation page and system prompts.
+With “Install When Downloaded” enabled and Native install selected, completed downloads install sequentially without another confirmation. Pair beforehand and keep LocalDevVPN or a supported Loon loopback connection active. Silent audio keeps the app running from downloading through installation; Lock Screen and Dynamic Island activities can show downloading, processing and installation states (standard package, with Live Activities enabled). iOS still controls background execution, so work cannot be guaranteed after the system terminates the app; reopening iPadn resumes pending work. Other methods still need iPadn in the foreground and their installation page and system prompts.
 
 Choose the install method under Account › Settings › Installation settings:
 
 | Method | For | What you need |
 | --- | --- | --- |
 | **One-tap install** (recommended) | Everyone | Nothing to set up; a network connection while installing |
-| **Native install** | Getting App Store recognition and updates, or replacing an App Store copy | LocalDevVPN and a one-time pairing, see below |
+| **Native install** | Getting App Store recognition and updates, or replacing an App Store copy | A valid pairing file and LocalDevVPN or Loon loopback configuration, see below |
 | **Local certificate** | When one-tap install shows no prompt (for example inside LiveContainer) | Create a certificate in Installation settings, install its profile, and enable trust under Settings › General › About › Certificate Trust Settings |
 | **Proxy service** | People already using Surge, Loon and similar tools | Your own manifest service address and proxy rules |
 
@@ -138,20 +146,30 @@ One-tap install, local certificate and proxy service use the system's web instal
 
 One-tap install, local certificate and proxy service all go through the system's web installation channel. Apps installed that way aren't shown as installed in the App Store and can't be updated there; desktop tools such as 3uTools list them as “shared”; and they can't replace an App Store copy of the same app. Native install uses the installation service desktop tools use instead, with the same result as installing from a computer: the App Store recognizes and updates the app, and an App Store copy is replaced in place with its data kept. Packages never leave your device.
 
-**1. Install LocalDevVPN**
+**1. Prepare a loopback VPN**
 
-Get [LocalDevVPN](https://apps.apple.com/app/localdevvpn/id6755608044) from the App Store. It only forwards connections inside your device and doesn't go through any outside server. Tap Connect in it before each native install.
+- **LocalDevVPN:** get [LocalDevVPN](https://apps.apple.com/app/localdevvpn/id6755608044) from the App Store and connect before native installation. Users have reported successful connection checks; it is a useful starting point for validating pairing and connectivity.
+- **Loon:** B38 loopback compatibility is retained. Use a loopback-capable version (3.5.3 build 1007 or later), enable the appropriate loopback plugin and retain an existing working configuration. A route for `10.7.0.1/32` alone is insufficient: forward lockdown port 62078 and the dynamic service ports returned by the device. Loon compatibility is based on observed interfaces and host tests; complete authentication, heartbeat and installation still need device validation.
 
-**2. Pair (once)**
+Connect one of these VPNs at a time. B39 does not create or modify your VPN configuration.
 
-- **iOS / iPadOS 27 or later, no computer:** In Installation settings › Native install, tap “Pair on This Device”. iPadn opens a guide. Open Settings › Privacy & Security › Developer Mode, tap “Pair with iPadn” and enter the code iPadn shows. The code also appears in the Dynamic Island, on the Lock Screen and in a notification, so you don't need to switch back. Developer Mode must be on; if the switch isn't there, the device has no developer-signed app yet, and it may not appear with enterprise signing.
-- **iOS 17.4 – 26:** On a computer, connect the device with [idevice_pair](https://github.com/jkcoxson/idevice_pair) and create a remote pairing (RPPairing) file. Put it in Files › On My iPhone › iPadn and open the Native install page: iPadn imports it automatically. You can also tap “Import Pairing File” to pick it from elsewhere. You only need the computer this once; later installs don't need it.
+**2. Choose pairing for your system**
+
+| System | Pairing method |
+| --- | --- |
+| **iOS / iPadOS 16 through 17.3** | Connect to a computer, trust it, export the traditional **lockdown pairing file** containing certificates, then import it under Installation settings › Native install. Existing valid files can be reused. |
+| **iOS / iPadOS 17.4 through 26** | The upstream remote pairing method remains available: generate an **RPPairing** file with [idevice_pair](https://github.com/jkcoxson/idevice_pair) on a computer and import it. Existing valid traditional files continue to use lockdown. |
+| **iOS / iPadOS 27 or later** | The upstream “Pair on This Device” flow remains available with Developer Mode enabled. Follow the app's guide to enter its pairing code in system Settings. |
+
+Traditional files contain certificate and host information such as `HostCertificate`, `HostPrivateKey` and `HostID`; RPPairing uses remote pairing values such as `public_key`, `private_key` and `identifier`. **Renaming the extension or copying fields cannot convert between them.** Upstream's “old format” message reflects its remote-only validator. B39 accepts traditional files, so iOS 16 users need not pair again because of that message.
+
+Tap “Import Pairing File”, or place the file in Files › On My iPhone › iPadn and open the Native install page to import it automatically. Pairing files contain sensitive keys; never upload them to GitHub, cloud storage or a bug report.
 
 **3. Check the connection**
 
-Connect in LocalDevVPN, return to iPadn and tap “Check Connection”. Once it says connected, you can install.
+Unlock the device, connect the chosen loopback VPN, return to iPadn and tap “Check Connection”. After it succeeds, validate installation, in-place updates and App Store recognition. B39 retains B38's protocol and route implementation; not every system, VPN configuration or app has been verified.
 
-Pairing stops working after changing the passcode, restoring the device or untrusting the computer; pair again then. The pairing file is a connection credential for your device, so never share it.
+Updating to B39 alone does not require a new pairing file. If a trust change or system restore invalidates authentication, export a new file from a trusted computer. For route failures, check the VPN first; importing the pairing file again cannot fix the route.
 
 You can also tap the share button to hand the package to another installation tool.
 
@@ -215,15 +233,15 @@ The app was installed with one-tap install, local certificate or proxy service. 
 
 Native install uses the system's own installation service, the same one a computer uses to install apps, and it only accepts paired, trusted connections. Before iOS 27, Apple only lets a computer start that pairing over a cable (you tap “Trust This Computer” and enter your passcode); an app on the phone can't start it, so the pairing file has to be made on a computer first. iOS 27 added on-device pairing under Developer Mode, which is what “Pair on This Device” uses.
 
-You only need the computer once. After the pairing file is imported, it keeps working until you change the passcode, restore the device or untrust the computer. Below iOS 17.4 the system has no such connection, so native install isn't available.
+B39 uses traditional lockdown pairing on iOS 16 through 17.3 and keeps RPPairing on iOS 17.4 or later. Existing valid files remain usable; export a new one if a trust change or system restore invalidates authentication. Updating to B39 alone does not require pairing again.
 </details>
 
 <details>
 <summary><b>Native install says it can't reach the installation service?</b></summary>
 
-- Tap Connect in LocalDevVPN first, and keep Wi-Fi on.
-- LocalDevVPN can't run together with another proxy or VPN. Surge, Shadowrocket, Egern and similar tools would need `10.7.0.1/32` added to their routes to stand in for LocalDevVPN; this hasn't been tested.
-- If it says the pairing file is invalid, pair again (on iOS 27 or later, just tap “Pair on This Device”).
+- Unlock the device and connect LocalDevVPN or a supported Loon loopback configuration; do not run both VPNs at once.
+- Loon needs full loopback forwarding. A route for `10.7.0.1/32` alone does not provide the installation services. Other proxy tools are not guaranteed substitutes.
+- Distinguish route, pairing, heartbeat and installation-service failures before replacing credentials. Export a new file only for confirmed pairing failures. If it still fails, copy diagnostics under Account › Settings › Maintenance; never attach the pairing file.
 </details>
 
 <details>
@@ -288,6 +306,8 @@ No. Removing an account only clears that account's sign-in details and purchase 
 
 ## Support iPadn
 
+The following support channels belong to **upstream author mengangs**. They retain the upstream payment details and do not collect funds for this fork's maintainer.
+
 <div align="center">
 
 <sub>❤️ ❤️ ❤️</sub>
@@ -310,17 +330,20 @@ Your support keeps the updates coming.
 ## Contributing
 
 - **Translations:** every interface string lives in [`Localizable.xcstrings`](iPadn-iOS/iPadn/Resources/Localizable.xcstrings); open it in Xcode to edit entries one by one. Pull requests that improve a language or add a new one are welcome.
-- **Bug reports:** describe your device, system version and steps in [Issues](https://github.com/mengangs/ipadn/issues). If you can, attach the file from Account › Settings › Export diagnostics; it contains no account names or credentials.
+- **Bug reports:** describe your device, system version and steps in [Issues](https://github.com/pastnm/ipadn/issues). If you can, attach the file from Account › Settings › Export diagnostics; it contains no account names or credentials.
 - **Building:** see [BUILDING.md](iPadn-iOS/BUILDING.md).
 
 ## Acknowledgements
+
+- The original project [mengangs/ipadn](https://github.com/mengangs/ipadn) is developed by mengangs; pastnm maintains this repository's iOS 16 VPN compatibility changes.
 
 - [kylefmohr](https://github.com/kylefmohr) contributed the English translation ([#35](https://github.com/mengangs/ipadn/pull/35)).
 - Thanks to everyone who reported problems and suggested ideas, and to the open-source projects iPadn uses, listed in [Third-party components and licenses](iPadn-iOS/THIRD_PARTY_NOTICES.md).
 
 ## More
 
-- [Release notes](RELEASE_NOTES.md)
+- [B39 changes and pairing formats](docs/local-v2.1.1-b39-upstream.md)
+- [Upstream 2.1.1 release notes](RELEASE_NOTES.md)
 - [Building from source](iPadn-iOS/BUILDING.md)
 - [Third-party components and licenses](iPadn-iOS/THIRD_PARTY_NOTICES.md)
 

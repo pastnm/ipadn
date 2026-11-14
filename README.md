@@ -2,21 +2,25 @@
 
 <img src="docs/images/icon.png" width="120" alt="iPadn">
 
-# iPadn
+# iPadn · iOS 16 VPN 兼容分支
 
 **在 iPhone 和 iPad 上搜索、下载、安装你拥有的 App。**
 支持 iPhone、iPad、Apple TV 与 Mac 应用，包括历史版本与已下架应用。
 
-[![最新版本](https://img.shields.io/github/v/release/mengangs/ipadn?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=111111)](https://github.com/mengangs/ipadn/releases/latest)
-[![下载量](https://img.shields.io/github/downloads/mengangs/ipadn/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F&color=111111)](https://github.com/mengangs/ipadn/releases)
+[![最新版本](https://img.shields.io/github/v/release/pastnm/ipadn?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=111111)](https://github.com/pastnm/ipadn/releases/latest)
+[![下载量](https://img.shields.io/github/downloads/pastnm/ipadn/total?label=%E4%B8%8B%E8%BD%BD%E9%87%8F&color=111111)](https://github.com/pastnm/ipadn/releases)
 ![系统要求](https://img.shields.io/badge/iOS%20%2F%20iPadOS-16%2B-111111)
-[![许可证](https://img.shields.io/github/license/mengangs/ipadn?label=%E8%AE%B8%E5%8F%AF%E8%AF%81&color=111111)](LICENSE)
+[![许可证](https://img.shields.io/github/license/pastnm/ipadn?label=%E8%AE%B8%E5%8F%AF%E8%AF%81&color=111111)](LICENSE)
 
 **简体中文** · [English](README_EN.md)
 
-[下载](https://github.com/mengangs/ipadn/releases/latest) · [安装下载的应用](#安装下载的应用) · [常见问题](#常见问题) · [反馈问题](https://github.com/mengangs/ipadn/issues) · [支持 iPadn](#支持-ipadn)
+[下载](https://github.com/pastnm/ipadn/releases/latest) · [安装下载的应用](#安装下载的应用) · [常见问题](#常见问题) · [反馈问题](https://github.com/pastnm/ipadn/issues) · [支持 iPadn](#支持-ipadn)
 
 </div>
+
+由 [pastnm](https://github.com/pastnm) 维护，基于 [mengangs/ipadn](https://github.com/mengangs/ipadn)。当前版本为 **2.1.1 B39**，保留 B38 的传统配对、LocalDevVPN / Loon 回环连接及完整功能。原作者、截图和开源组件的署名与许可保留。
+
+> **下载本分支**：[B39 完整 IPA 与源码](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39)。B39 的应用内更新检查仍读取上游，更新本分支请使用这里的发行版或下方签名工具源，避免装回官方包。
 
 <p align="center">
   <img src="docs/images/zh/01-search.jpg" width="24%" alt="搜索应用">
@@ -34,11 +38,15 @@
 
 ---
 
-## 2.1.1 更新
+## 2.1.1 B39 更新
 
-- **修复 iOS 16 安装设置崩溃**：修正安装帮助链接的编码，并对无法构造的商店链接安全处理。
-- **优化日期范围筛选排版**：起止日期、查询按钮和进度状态集中展示，对齐控件，并适配大字体，减少拥挤与错位。
-- 继续提供标准版和精简版，支持 iOS / iPadOS 16 及更新版本。详见 [更新说明](RELEASE_NOTES.md)。
+- 同步上游 **2.1.1** 的安装设置闪退修复、App Store 链接容错和日期范围筛选布局改进。
+- 保留 **B38 的连接实现**：传统 lockdown 配对、LocalDevVPN 与 Loon 回环兼容、绑定接口的心跳和动态安装服务。
+- **iOS 16 至 17.3 可使用传统配对文件**。已有有效文件可继续使用；官方提示的“旧格式”不代表文件已过期，无需改成 RPPairing。
+- 当前发布 **未签名完整版**，含原生安装、Mac PKG、小组件和实时活动；本分支未发布精简版。主程序最低 iOS 16.0，扩展最低 iOS 16.1；常规签名需要 2 个 App ID。
+- 完整 Release 编译、IPA 检查、55 项 Rust 主机测试、31 项 Python 测试及 4 项 macOS 配对/帮助链接测试通过。iOS 测试目标已编译，B39 的真机连接、实际安装及数据保留仍需验收，不能用主机测试代替。
+
+详见 [B39 更新与配对格式说明](docs/local-v2.1.1-b39-upstream.md) 和 [发行版验证报告](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39)。
 
 ## 2.1.0 主要功能
 
@@ -46,7 +54,7 @@
 - **按日期找版本**：选择起止日期查询范围内的版本，支持进度、取消和未知日期提示；列表分批展开，图标按需加载并复用解码缓存。包内日期可能与商店发布日期不同。
 - **下载操作更完整**：侧滑删除/分享、点击外部收起、5 秒撤销倒计时、完成状态过渡，以及原生方式下载完成后自动串行安装。
 - **本机应用可查看本机详情**：商店资料缺失也能查看版本和 Bundle ID，区分地区无结果与查询失败，支持单独重试。
-- 修复侧滑边缘裁剪、掉帧时收起过慢、重复安装排队及最近搜索标签圆角；标准版和精简版均保留。详见 [更新说明](RELEASE_NOTES.md)。
+- 修复侧滑边缘裁剪、掉帧时收起过慢、重复安装排队及最近搜索标签圆角；本分支沿用这些上游功能，当前仅发布完整版。
 
 ## 能做什么
 
@@ -57,7 +65,7 @@
 | 🕘 **历史版本** | 查看每个版本的版本号、日期、IPA 安装包大小、对应版本图标和更新说明并下载旧版本，也可以直接输入版本 ID。长按版本行可复制版本号或版本 ID；大字体下自动纵向排版。无法取得大小时显示「—」，不会套用最新版的大小。图标按需从对应 IPA 的主图标 PNG 读取并缓存，无法提取时显示占位，不套用当前商店图标；仅含 Assets.car 的版本暂不支持。已下载的应用可以「保留此版本」，不再提醒更新。 |
 | ⬇️ **下载管理** | 后台下载，随时暂停、继续、重试，实时显示速度与剩余时间；锁屏和灵动岛同步显示进度。可以只在 Wi‑Fi 下下载，也可以下载完成后自动安装。卡片侧滑可删除或分享，点其他位置收起；分享文件名包含应用名和版本号。删除支持 5 秒撤销倒计时，下载完成后进度环变为勾号和「安装」。长按仍使用系统菜单，重复点当前标签页回到顶部。任务详情中能查看安装包声明的权限、扩展、语言等信息。 |
 | 🔔 **更新提醒** | 已下载的应用有新版本时在列表里提示，后台检查后还会发送通知。 |
-| ⬆️ **iPadn 自动更新提醒** | 有新版本时在「设置」中提示并发送通知，可以直接在 App 内查看更新内容、下载新安装包，交给你的签名工具安装。 |
+| ⬆️ **iPadn 更新** | B39 内置检查仍指向上游；本兼容分支请通过本仓库 Releases 或下方签名工具源更新。 |
 | 👀 **关注应用** | 关注感兴趣的应用，有新版本、降价、限免或下架时提醒你，并记录价格走势。 |
 | 🌏 **多地区比价** | 对比应用和内购项目（含订阅）在各个国家或地区的价格，按你选的货币换算后从低到高排列，对比的地区可以自己选。 |
 | 📲 **一键安装** | 下载完成后点「安装」即可，无需描述文件或证书，并实时显示安装进度。 |
@@ -75,13 +83,13 @@
 
 界面参考 App Store 设计，外观默认跟随系统、图标默认深色（都可在设置中更改），支持动态字体和 iPad 侧栏，还可以在设置中更换应用图标。
 
-**界面语言**：简体中文、繁體中文、English、日本語、한국어、Русский、Español、Français、Deutsch、Português (Brasil)、العربية，阿拉伯语使用从右到左的排版。iPadn 跟随系统语言，也可以在「设置 › iPadn › 语言」中单独设置。英文由社区贡献者完善，其他语言为机器辅助翻译，欢迎在 [Issues](https://github.com/mengangs/ipadn/issues) 或 Pull Request 中纠错。
+**界面语言**：简体中文、繁體中文、English、日本語、한국어、Русский、Español、Français、Deutsch、Português (Brasil)、العربية，阿拉伯语使用从右到左的排版。iPadn 跟随系统语言，也可以在「设置 › iPadn › 语言」中单独设置。英文由社区贡献者完善，其他语言为机器辅助翻译，欢迎在 [Issues](https://github.com/pastnm/ipadn/issues) 或 Pull Request 中纠错。
 
 ## 开始使用
 
 > 需要 **iOS / iPadOS 16** 或更新版本。
 
-1. 在 [Releases](https://github.com/mengangs/ipadn/releases/latest) 下载最新的 `iPadn-版本号-unsigned.ipa`。签名工具或免费账号的 App ID 数量有限时，可以改用精简版 `iPadn-版本号-lite-unsigned.ipa`：只需 1 个 App ID，但没有灵动岛进度和小组件。
+1. 在 [B39 发行版](https://github.com/pastnm/ipadn/releases/tag/2.1.1-b39) 下载 `iPadn-2.1.1-b39-iOS16-20261114-185014-unsigned.ipa`。这是保留小组件和实时活动的完整版，常规签名需要 2 个 App ID；本分支当前没有精简版。
 2. 用你常用的签名工具签名后安装到设备上。
 3. 打开 iPadn，在「账号」中登录 Apple 账号。需要双重认证时，输入受信任设备上显示的 6 位验证码。
 
@@ -92,10 +100,10 @@
 SideStore、AltStore、Feather 等支持 AltStore 源的签名工具，可以添加下面的地址。添加后在工具里就能安装 iPadn，有新版本时也能直接在工具里更新，不用再手动下载安装包。
 
 ```
-https://raw.githubusercontent.com/mengangs/ipadn/main/altstore-source.json
+https://raw.githubusercontent.com/pastnm/ipadn/main/altstore-source.json
 ```
 
-源文件在每次发布后自动更新，只列出本仓库 Releases 中的安装包。
+此源仅列出 `pastnm/ipadn` 已发布的安装包，当前为 2.1.1（build 39），不会列入上游官方包。发布新版本后可运行 `python3 iPadn-iOS/scripts/generate_altstore_source.py` 更新源；目前未配置发行后自动刷新。安装标识保持 `app.local.iPadn`。
 
 ## 下载一个应用
 
@@ -117,14 +125,14 @@ https://raw.githubusercontent.com/mengangs/ipadn/main/altstore-source.json
 
 手动安装时，点下载卡片上的「安装」，按所选安装方式完成操作；网页安装方式需要在系统弹窗中确认，完成前请保持 iPadn 打开。
 
-开启「下载完成后自动安装」并选择「原生安装」后，完成的任务会依次直接安装，无需再次确认；需事先完成配对并保持 LocalDevVPN 连接。下载到安装期间使用静音音频维持后台运行，锁屏和灵动岛可显示下载、处理和安装状态（标准版，需开启实时活动）。后台运行仍受 iOS 限制，不能保证被系统终止后继续；未完成的任务会在重新打开 iPadn 后恢复处理。其他安装方式仍需回到 iPadn，由安装页和系统提示完成。
+开启「下载完成后自动安装」并选择「原生安装」后，完成的任务会依次直接安装，无需再次确认；需事先完成配对，并保持 LocalDevVPN 或受支持的 Loon 回环连接。下载到安装期间使用静音音频维持后台运行，锁屏和灵动岛可显示下载、处理和安装状态（标准版，需开启实时活动）。后台运行仍受 iOS 限制，不能保证被系统终止后继续；未完成的任务会在重新打开 iPadn 后恢复处理。其他安装方式仍需回到 iPadn，由安装页和系统提示完成。
 
 在「账号 › 设置 › 安装设置」中可以选择安装方式：
 
 | 方式 | 适合谁 | 需要准备 |
 | --- | --- | --- |
 | **一键安装**（推荐） | 所有人 | 无需任何设置，安装时联网即可 |
-| **原生安装** | 希望 App Store 能识别、更新安装的应用，或要覆盖 App Store 已装版本 | LocalDevVPN 和一次配对，见下文 |
+| **原生安装** | 希望 App Store 能识别、更新安装的应用，或要覆盖 App Store 已装版本 | 有效配对文件与 LocalDevVPN 或 Loon 回环配置，见下文 |
 | **本机证书** | 一键安装没有弹出安装窗口时（例如在 LiveContainer 中运行） | 在安装设置中创建证书，安装描述文件，并在「设置 › 通用 › 关于本机 › 证书信任设置」中开启信任 |
 | **代理服务** | 已在使用 Surge、Loon 等工具 | 自己的清单服务地址与代理规则 |
 
@@ -138,20 +146,30 @@ https://raw.githubusercontent.com/mengangs/ipadn/main/altstore-source.json
 
 一键安装、本机证书和代理服务都通过系统的网页安装通道完成。这样装的应用，App Store 不会显示为已安装，也不能更新；爱思助手等工具会显示为「共享正版」；也不能覆盖 App Store 已装的同一应用。原生安装改用电脑安装软件所用的系统安装服务，安装结果与用电脑安装相同：App Store 能识别和更新，可以直接覆盖 App Store 版本并保留数据。安装包不会离开这台设备。
 
-**1. 安装 LocalDevVPN**
+**1. 准备回环 VPN**
 
-从 App Store 安装 [LocalDevVPN](https://apps.apple.com/app/localdevvpn/id6755608044)。它只在本机内部转发连接，不经过外部服务器。每次原生安装前先在 LocalDevVPN 中点按连接。
+- **LocalDevVPN**：从 App Store 安装 [LocalDevVPN](https://apps.apple.com/app/localdevvpn/id6755608044)，原生安装前先连接。已有用户反馈连接检查成功，适合先验证配对和连接。
+- **Loon**：保留 B38 的回环兼容。需要支持回环的 Loon 版本（3.5.3 build 1007 或更高）并启用相应回环插件；沿用已有有效配置。只把 `10.7.0.1/32` 加入路由并不足够，还需转发 lockdown 62078 及设备返回的动态服务端口。B38 的 Loon 兼容基于已观察接口和主机测试，完整认证、心跳和实际安装仍需真机验证。
 
-**2. 配对（只需一次）**
+二选一连接即可。B39 不会创建或修改你的 VPN 配置。
 
-- **iOS / iPadOS 27 及更新版本，不需要电脑**：在「安装设置 › 原生安装」中点按「在本机配对」，iPadn 会打开引导页。按提示打开「设置 › 隐私与安全性 › 开发者模式」，点按「与 iPadn 配对」，输入 iPadn 显示的配对码。配对码同时显示在灵动岛、锁屏和通知中，不用切回 iPadn。需要先开启开发者模式；看不到这个开关时，说明设备上还没有用开发者证书签名的应用，用企业证书签名时可能不会出现。
-- **iOS 17.4 – 26**：在电脑上用 [idevice_pair](https://github.com/jkcoxson/idevice_pair) 连接设备，生成「远程配对（RPPairing）」文件，放进「文件 › 我的 iPhone › iPadn」，在「原生安装」页 iPadn 会自动导入；也可以点「导入配对文件」从其他位置选取。电脑只需要用这一次，之后安装都不再需要电脑。
+**2. 按系统选择配对文件**
+
+| 系统 | 配对方式 |
+| --- | --- |
+| **iOS / iPadOS 16 至 17.3** | 在电脑上连接并信任设备，导出包含证书的传统 **lockdown 配对文件**，再到「安装设置 › 原生安装」导入。已有有效文件可继续使用。 |
+| **iOS / iPadOS 17.4 至 26** | 保留上游远程配对方式：在电脑上用 [idevice_pair](https://github.com/jkcoxson/idevice_pair) 生成 **RPPairing** 文件后导入。已有有效传统文件也会继续按 lockdown 协议使用。 |
+| **iOS / iPadOS 27 及更新版本** | 保留上游「在本机配对」入口，需开启开发者模式；按应用引导在系统设置中输入配对码。 |
+
+传统文件通常包含 `HostCertificate`、`HostPrivateKey`、`HostID` 等证书和主机信息；RPPairing 包含 `public_key`、`private_key`、`identifier` 等远程配对信息。**两者不能通过改扩展名或复制字段转换。** 官方包提示“旧格式”是其只接受远程格式的校验结果，B39 支持传统文件，iOS 16 用户无需因此重新配对。
+
+可点按「导入配对文件」选取文件，或把文件放入「文件 › 我的 iPhone › iPadn」后打开原生安装页自动导入。配对文件含敏感密钥，请勿上传到 GitHub、网盘或反馈附件中。
 
 **3. 检查连接**
 
-在 LocalDevVPN 中连接后，回到 iPadn 点「检查连接」，显示连接正常即可安装。
+解锁设备，连接所选回环 VPN，回到 iPadn 点「检查连接」。连接正常后再尝试应用安装、覆盖更新和 App Store 识别。B39 保留 B38 的协议与路由实现，尚不能保证每个系统、VPN 配置或应用都已验证成功。
 
-修改锁屏密码、系统还原或在电脑上取消信任后，配对会失效，需要重新配对。配对文件相当于这台设备的连接凭据，不要分享给他人。
+已有配对文件不会因更新 B39 而需要重建；设备信任关系变化或系统还原后，若认证明确失败，再从受信任电脑重新导出。路由失败应先检查 VPN，不能只靠重新导入配对文件解决。
 
 也可以点分享按钮，把安装包交给其他安装工具。
 
@@ -215,15 +233,15 @@ Apple 只允许下载你的账号拥有许可的应用。版本也可能已经�
 
 原生安装使用的是系统自带的安装服务，和电脑装 App 用的是同一个，它只接受已经配对、受信任的连接。iOS 27 之前，苹果只允许电脑通过数据线发起这种配对（手机上点「信任此电脑」并输入密码），手机上的 App 无法自己发起，所以需要先在电脑上生成配对文件。iOS 27 在「开发者模式」中加入了在手机上配对的入口，因此可以直接用「在本机配对」。
 
-电脑只需要用一次。配对文件导入 iPadn 后会一直有效，只有修改锁屏密码、还原系统，或在电脑上取消信任后才需要重新生成。iOS 17.4 以下没有这套连接方式，无法使用原生安装。
+B39 在 iOS 16 至 17.3 使用传统 lockdown 配对，iOS 17.4 及以上保留 RPPairing 分支。已有有效文件可继续使用；信任关系变化或系统还原导致认证失效时，才需要重新导出。仅更新 B39 无需重新配对。
 </details>
 
 <details>
 <summary><b>原生安装提示无法连接本机安装服务？</b></summary>
 
-- 先在 LocalDevVPN 中点按连接，并保持 Wi-Fi 开启。
-- LocalDevVPN 与其他代理或 VPN 不能同时开启。Surge、Shadowrocket、Egern 等工具需要把 `10.7.0.1/32` 加入路由才可能代替 LocalDevVPN，这种用法尚未测试。
-- 提示配对文件失效时，重新配对一次（iOS 27 及更新版本可直接点「在本机配对」）。
+- 解锁设备，并确认 LocalDevVPN 或受支持的 Loon 回环连接已开启；不要同时开启两套 VPN。
+- Loon 需配置完整回环转发，单独添加 `10.7.0.1/32` 路由不足以提供安装服务。不保证其他代理工具可直接替代。
+- 先区分 VPN 路由、配对认证、心跳和安装服务阶段；只有明确的配对失效才重新导出文件。仍失败时，在「账号 › 设置 › 维护」复制诊断，反馈时不要附配对文件。
 </details>
 
 <details>
@@ -288,6 +306,8 @@ Apple 只允许下载你的账号拥有许可的应用。版本也可能已经�
 
 ## 支持 iPadn
 
+以下为**上游原作者 mengangs** 的支持渠道，收款信息沿用上游，不属于本分支维护者。
+
 <div align="center">
 
 <sub>❤️ ❤️ ❤️</sub>
@@ -310,17 +330,20 @@ iPadn 会一直**免费、开源、没有广告**。<br>
 ## 参与贡献
 
 - **翻译**：所有界面文字在 [`Localizable.xcstrings`](iPadn-iOS/iPadn/Resources/Localizable.xcstrings) 中，用 Xcode 打开即可逐条编辑。改进现有语言或新增语言都欢迎提交 Pull Request。
-- **反馈问题**：在 [Issues](https://github.com/mengangs/ipadn/issues) 中描述设备、系统版本和操作步骤；方便的话附上「账号 › 设置 › 导出诊断信息」生成的文件，其中不含账号名称和登录凭据。
+- **反馈问题**：在 [Issues](https://github.com/pastnm/ipadn/issues) 中描述设备、系统版本和操作步骤；方便的话附上「账号 › 设置 › 导出诊断信息」生成的文件，其中不含账号名称和登录凭据。
 - **自行编译**：步骤见 [BUILDING.md](iPadn-iOS/BUILDING.md)。
 
 ## 致谢
+
+- 原项目 [mengangs/ipadn](https://github.com/mengangs/ipadn) 由 mengangs 开发；pastnm 维护本仓库的 iOS 16 VPN 兼容改动。
 
 - [kylefmohr](https://github.com/kylefmohr) 贡献了英文翻译（[#35](https://github.com/mengangs/ipadn/pull/35)）。
 - 感谢所有提交问题和建议的用户，以及 iPadn 使用的开源项目，详见[第三方组件与许可](iPadn-iOS/THIRD_PARTY_NOTICES.md)。
 
 ## 更多
 
-- [更新内容](RELEASE_NOTES.md)
+- [B39 更新与配对格式说明](docs/local-v2.1.1-b39-upstream.md)
+- [上游 2.1.1 更新内容](RELEASE_NOTES.md)
 - [自行编译](iPadn-iOS/BUILDING.md)
 - [第三方组件与许可](iPadn-iOS/THIRD_PARTY_NOTICES.md)
 
